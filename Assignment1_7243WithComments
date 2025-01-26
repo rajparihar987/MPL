@@ -1,0 +1,123 @@
+; To accept five 64 bit Hexadecimal numbers from user and store them in an array and display them.
+; Date : 20 January 2025
+; Name : Raj Parihar  Roll no: 7243
+
+; Macro defined for input and output
+%macro io 4
+	mov rax, %1  ; Assigning System Call Number to rax(1 for syswrite 
+                 ; and 0 for sys read)
+	mov rdi, %2  ; Assigning File Descriptor to rdi (1 for stdout 
+                 ;  and 0 for sys stdin)
+	mov rsi, %3  ; Assigning rsi the address of buffer to print/input
+	mov rdx, %4  ; Assigning length of the buffer to rds register
+	syscall      ; System Call --> Generates interrupt to Kernel
+%endmacro
+
+; Macro defined for exit the program
+%macro exit 0
+    mov rax,60   ; Assigning System Call number to rax (60 for sys_exit)
+	mov rdi,0    
+	syscall      ; Generate interrupt to Kernel
+%endmacro
+
+section .data
+    ; declaring variable of Byte type names msg1 for problem statement
+	msg1 db "Write an X86/64 ALP to accept five hexadecimal numbers from user and store them in an array and display the accepeted numbers." ,10
+
+    ; Calculating the length of the variable by using equ directive
+	len1 equ $-msg1
+
+    ; declaring variable of Byte type names ms2 for Asking for input
+	msg2 db "Enter five 64-bits hexadecimal numbers" ,10
+	len2 equ $-msg2
+
+	msg3 db "Five 64 bits hexadecimal numbers are as follows:- ",10
+	len3 equ $-msg3
+
+    ; A variable to print new line in the output(New line character has Ascii value == 10 )
+	newline db 10
+
+    ; Error message Declared for Handlin Invalid Hexadecimal Inputs
+    error_msg db "Error Not a Valid 64-Bit Hexadecimal Number"
+
+section .bss
+	ascii_num resb 17
+	hexnum resq 5
+
+section .code
+global _start ; Must be declared for linker
+	_start:  ; Tells the linker the entry point of the program
+		io 1,1,msg1,len1
+		io 1,1,msg2,len2
+		mov rcx,5
+		mov rsi,hexnum ; Moving array hexnum to rsi pointer
+		next1:         ; Label for next iteration
+			push rsi   ; Pushing rsi and rcx to stack so its value 
+                       ;dont get lost         
+			push rcx
+			io 0,0,ascii_num,17  for inputting the number
+			call ascii_hex64 ; calling procedure to convert ascii to hex
+			pop rcx    ; popping rcs and rsi from stack
+			pop rsi
+			mov [rsi],rbx ; Assigning the value of rbx register to current index
+			add rsi,8  ; incrementing rsi by 8 bytes
+		loop next1 ; jump to lable next1 until the rcx becomes zero
+		
+		io 1,1,msg3,len3 
+		mov rsi,hexnum
+		mov rcx,5
+		
+        ; Loop for converting hexadecimal numbers to ASCII characters back 
+		next2: 
+			push rsi
+			push rcx
+			mov rbx,[rsi]
+			call hex_ascii64
+			pop rcx 
+			pop rsi
+			add rsi,8
+		loop next2
+	exit
+
+ascii_hex64:
+	mov rsi,ascii_num
+	
+	mov rbx,0 ; Clearing the rax register to clear any garbage value
+	mov rcx,16 ; Setting rcs register to 16 as loop will run 16 times
+	
+	next3:
+		rol rbx,4 ; rortating rbx to left 4 bits
+		mov al,[rsi]
+		cmp al,39H
+		jbe sub30h
+		sub al,7H
+		
+		sub30h:
+			sub al,30H
+			add bl,al
+			inc rsi
+	loop next3
+	ret
+
+hex_ascii64:
+	mov rsi,ascii_num
+	mov rcx,16
+	
+	next4:	
+		rol rbx,4
+		mov al,bl
+		and al,0fh
+		cmp al,9
+		jbe add30h
+		add al,7H
+		
+		add30h:
+			add al,30H
+			mov[rsi],al
+			inc rsi
+	loop next4
+	io 1,1,ascii_num,16
+	io 1,1,newline,1
+	ret
+			
+	
